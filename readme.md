@@ -69,6 +69,10 @@ To apply CSS stylesheets to your inky.php templates, do not include any `<link>`
 
 In the above array, reference any additional CSS file(s) you want to apply to your emails.  Be sure to include each file starting from the base path.
 
+CSS Media Queries will be extracted and included in a style tag where you put the comment `<!-- style -->` somewhere in your templates.  
+This tag is editable with `style_replace_tag` in the inky config file.  
+You may have to change this tag to something that is not a comment as inky templates removes HTML comments. Blade templates do not exhibit this problem. 
+
 Here's a handy reference for CSS in emails: [CSS Support Guide for Email Clients](https://www.campaignmonitor.com/css/)
 
 ## Licence
