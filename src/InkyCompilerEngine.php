@@ -21,10 +21,16 @@ class InkyCompilerEngine extends CompilerEngine
 
     public function get($inkyFilePath, array $data = [])
     {
-        // Compiles the inky template as if it were a regular blade file
+        $combinedStyles = collect(config('inky.stylesheets'))->map(function ($path) {
+            return $this->filesystem->get(base_path($path));
+        })->implode("\n\n");
+
+        $mediaQueries = $this->extractMediaQueries($combinedStyles);
+
         $html = parent::get($inkyFilePath, $data);
 
-        // remove css stylesheet links from email's HTML
+        $html = str_replace(config('inky.style_replace_tag'), count($mediaQueries) > 0 ? '<style>'.implode("\n\n", $mediaQueries).'</style>' : '', $html);
+
         $crawler = new Crawler;
         $crawler->addHtmlContent($html);
         $cssLinks = $crawler->filter('link[rel=stylesheet]');
@@ -37,18 +43,46 @@ class InkyCompilerEngine extends CompilerEngine
 
         $htmlWithoutLinks = $crawler->html();
 
-        // Combine all stylesheets into 1 string of CSS
-        $combinedStyles = collect(config('inky.stylesheets'))->map(function ($path) {
-            return $this->filesystem->get(base_path($path));
-        })->implode("\n\n");
-
         $inliner = new CssToInlineStyles;
-
+        
         return $inliner->convert($htmlWithoutLinks, $combinedStyles);
     }
 
     public function getFiles()
     {
         return $this->filesystem;
+    }
+
+    private function extractMediaQueries($css)
+    {
+        $mediaBlocks = array();
+    
+        $start = 0;
+        while (($start = strpos($css, "@media", $start)) !== false)
+        {
+            $s = array();
+            $i = strpos($css, "{", $start);
+            if ($i !== false)
+            {
+                array_push($s, $css[$i]);
+                $i++;
+                while (!empty($s))
+                {
+                    if ($css[$i] == "{")
+                    {
+                        array_push($s, "{");
+                    }
+                    elseif ($css[$i] == "}")
+                    {
+                        array_pop($s);
+                    }
+                    $i++;
+                }
+                $mediaBlocks[] = substr($css, $start, ($i + 1) - $start);
+                $start = $i;
+            }
+        }
+    
+        return $mediaBlocks;
     }
 }

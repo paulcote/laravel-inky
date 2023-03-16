@@ -15,4 +15,6 @@ return [
     'stylesheets' => [
         'public/css/foundation-emails.css',
     ],
+
+    'style_replace_tag' => '<!-- style -->'
 ];
