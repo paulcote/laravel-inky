@@ -21,13 +21,19 @@ class InkyCompilerEngine extends CompilerEngine
 
     public function get($inkyFilePath, array $data = [])
     {
-        $combinedStyles = collect(config('inky.stylesheets'))->map(function ($path) {
+        $html = parent::get($inkyFilePath, $data);
+
+        preg_match_all('/((?:<link\b.+?href=")(?!http)([^"]*?)(?:".*?>))/', $html, $stylesheetsMatches);
+        $html = preg_replace('/((?:<link\b.+?href=")(?!http)(?:[^"]*?)(?:".*?>))/', '', $html);
+
+        $stylesheetsMatchesFiles = $stylesheetsMatches[2];
+        $stylesheets = array_merge($stylesheetsMatchesFiles, config('inky.stylesheets'));
+
+        $combinedStyles = collect($stylesheets)->map(function ($path) {
             return $this->filesystem->get(base_path($path));
         })->implode("\n\n");
 
         $mediaQueries = $this->extractMediaQueries($combinedStyles);
-
-        $html = parent::get($inkyFilePath, $data);
 
         $html = str_replace(config('inky.style_replace_tag'), count($mediaQueries) > 0 ? '<style>'.implode("\n\n", $mediaQueries).'</style>' : '', $html);
 
